@@ -22,40 +22,44 @@
       system: let
         overlays = [(import rust-overlay)];
         pkgs = import nixpkgs {inherit system overlays;};
-        rust =
-          pkgs.rust-bin.selectLatestNightlyWith
-          (toolchain:
-            toolchain.default.override {
-              extensions = ["rust-src"];
-              targets = [];
-            });
+        # rust =
+        #   pkgs.rust-bin.selectLatestNightlyWith
+        #   (toolchain:
+        #     toolchain.default.override {
+        #       extensions = ["rust-src"];
+        #       targets = [];
+        #     });
+        rust = pkgs.rust-bin.stable.latest.default.override {
+          extensions = ["rust-src"];
+          targets = [
+            # "wasm32-unknown-unknown"
+          ];
+        };
         craneLib = (crane.mkLib pkgs).overrideToolchain (_p: rust);
 
         commonRust = {
           src = craneLib.cleanCargoSource ./.;
           buildInputs = with pkgs; [
             # Add extra build inputs here, etc.
-            # openssl
-            pkgs.ripgrep
+            openssl
           ];
           nativeBuildInputs = with pkgs; [
             # Add extra native build inputs here, etc.
-            # pkg-config
+            pkg-config
           ];
-          # Build *just* the cargo dependencies, so we can reuse
-          # all of that work (e.g. via cachix) when running in CI
         };
         cargoArtifacts = craneLib.buildDepsOnly (commonRust
           // {
-            # Additional arguments specific to this derivation can be added here.
-            # Be warned that using `//` will not do a deep copy of nested
-            # structures
+            # Be warned that using `//` will not do a deep copy of nested sets
             pname = "mycrate-deps";
           });
       in rec {
         packages.default = packages.hello;
         devShells.default = craneLib.devShell {
           inputsFrom = [packages.hello];
+          packages = [
+            pkgs.rust-analyzer
+          ];
         };
         packages.hello = craneLib.buildPackage (commonRust
           // {
