@@ -1,5 +1,6 @@
 [package]
-name = "textedit"
+name = "hello"
 version = "0.1.0"
+edition = "2021"
 
 [dependencies]
